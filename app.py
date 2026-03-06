@@ -22,9 +22,17 @@ df = load_data(DATA_FILENAME)
 if df is not None:
     st.sidebar.header("Filters")
     
-    # Lead Source Filter
+    # Lead Source Filter (Single Dropdown)
     lead_sources = ['All'] + sorted(df['LeadSource'].dropna().unique().tolist())
     selected_source = st.sidebar.selectbox("Lead Source:", lead_sources)
+    
+    # NEW: University Filter (Multi-Select)
+    universities = sorted(df['University'].dropna().unique().tolist())
+    selected_universities = st.sidebar.multiselect(
+        "University:", 
+        options=universities, 
+        default=universities  # This makes all universities selected by default
+    )
     
     # Date Filters
     min_date = df['CreatedOn'].min().date()
@@ -33,11 +41,22 @@ if df is not None:
     start_date = st.sidebar.date_input("Start Date", min_date, min_value=min_date, max_value=max_date)
     end_date = st.sidebar.date_input("End Date", max_date, min_value=min_date, max_value=max_date)
     
-    # Apply Filters
+    # --- Apply Filters ---
     filtered_df = df.copy()
+    
+    # 1. Apply Lead Source Filter
     if selected_source != 'All':
         filtered_df = filtered_df[filtered_df['LeadSource'] == selected_source]
         
+    # 2. Apply New University Filter
+    if selected_universities:
+        # Keep rows where the University is IN the list of selected universities
+        filtered_df = filtered_df[filtered_df['University'].isin(selected_universities)]
+    else:
+        # If the user clears the entire box (deselects all), empty the dataframe
+        filtered_df = pd.DataFrame(columns=filtered_df.columns)
+        
+    # 3. Apply Date Filter
     filtered_df = filtered_df[
         (filtered_df['CreatedOn'].dt.date >= start_date) & 
         (filtered_df['CreatedOn'].dt.date <= end_date)
